@@ -1,0 +1,29 @@
+{
+  "name": "@cryptodeepapp/exchange-api-examples",
+  "version": "1.0.0",
+  "description": "Official JavaScript, cURL, and Postman examples for the CryptoDeepApp Exchange API.",
+  "private": true,
+  "homepage": "https://github.com/CryptoDeepApp/exchange-api-examples#readme",
+  "bugs": {
+    "url": "https://github.com/CryptoDeepApp/exchange-api-examples/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CryptoDeepApp/exchange-api-examples.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20.6"
+  },
+  "scripts": {
+    "check": "npm run check:syntax && npm run check:json && npm test",
+    "check:syntax": "node scripts/check-syntax.js",
+    "check:json": "node scripts/validate-json.js",
+    "test": "node --test tests/examples.test.js",
+    "example:currencies": "node --env-file=.env examples/javascript/get-currencies.js",
+    "example:rate": "node --env-file=.env examples/javascript/get-exchange-rate.js",
+    "example:estimate": "node --env-file=.env examples/javascript/get-exchange-estimate.js",
+    "example:status": "node --env-file=.env examples/javascript/get-exchange-status.js",
+    "example:transactions": "node --env-file=.env examples/javascript/get-transactions.js"
+  }
+}
