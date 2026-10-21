@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "fe849f10-638b-43d0-b6a1-8cfef1aa7708",
     "name": "CryptoDeepApp Exchange API - Create Transaction",
-    "description": "Example for POST /api/v1/transaction.",
+    "description": "Manually guarded example for POST /api/v1/transaction. This request creates a real exchange transaction.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -19,6 +19,22 @@
     {
       "name": "Create transaction",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const confirmationVariable = 'confirmTransactionCreation';",
+              "const expectedConfirmation = 'CREATE_REAL_TRANSACTION';",
+              "const confirmation = pm.environment.get(confirmationVariable);",
+              "pm.environment.set(confirmationVariable, 'false');",
+              "",
+              "if (confirmation !== expectedConfirmation) {",
+              "  pm.execution.skipRequest();",
+              "}"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
@@ -51,7 +67,7 @@
             }
           }
         },
-        "description": "Create a transaction.",
+        "description": "Creates a real exchange transaction. Set confirmTransactionCreation to CREATE_REAL_TRANSACTION immediately before sending. The confirmation resets after one attempt.",
         "url": {
           "raw": "{{baseUrl}}/api/v1/transaction"
         }

@@ -2,6 +2,7 @@
   "name": "@cryptodeepapp/exchange-api-examples",
   "version": "1.0.0",
   "description": "Official JavaScript, cURL, and Postman examples for the CryptoDeepApp Exchange API.",
+  "license": "MIT",
   "private": true,
   "homepage": "https://github.com/CryptoDeepApp/exchange-api-examples#readme",
   "bugs": {

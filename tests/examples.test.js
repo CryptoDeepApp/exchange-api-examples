@@ -18,6 +18,28 @@ function getBearerToken(collection) {
   return collection.auth?.bearer?.find(({ key }) => key === 'token')?.value;
 }
 
+function runPostmanGuard(script, initialConfirmation) {
+  let confirmation = initialConfirmation;
+  let skipped = false;
+  const pm = {
+    environment: {
+      get: () => confirmation,
+      set: (key, value) => {
+        assert.equal(key, 'confirmTransactionCreation');
+        confirmation = value;
+      },
+    },
+    execution: {
+      skipRequest: () => {
+        skipped = true;
+      },
+    },
+  };
+
+  Function('pm', script)(pm);
+  return { confirmation, skipped };
+}
+
 test('builds the documented Bearer authorization header', () => {
   assert.equal(toAuthorizationHeader('test_token-1'), 'Bearer test_token-1');
 });
@@ -125,6 +147,7 @@ test('supports both documented /rate amount directions', async () => {
 
 test('Postman files contain the documented requests', async () => {
   const envExample = await readFile('.env.example', 'utf8');
+  const packageJson = JSON.parse(await readFile('package.json', 'utf8'));
   const postmanEnvironment = JSON.parse(
     await readFile('postman/CryptoDeepApp.postman_environment.json', 'utf8'),
   );
@@ -143,10 +166,14 @@ test('Postman files contain the documented requests', async () => {
   const apiKeyVariable = postmanEnvironment.values.find(
     ({ key }) => key === 'apiKey',
   );
+  const transactionConfirmation = postmanEnvironment.values.find(
+    ({ key }) => key === 'confirmTransactionCreation',
+  );
 
   assert.match(envExample, /^CRYPTODEEP_API_KEY=\s*$/m);
   assert.equal(apiKeyVariable?.value, '');
   assert.equal(apiKeyVariable?.type, 'secret');
+  assert.equal(transactionConfirmation?.value, 'false');
 
   assert.equal(getBearerToken(getCollection), '{{apiKey}}');
   assert.equal(getRequests.length, 5);
@@ -161,4 +188,35 @@ test('Postman files contain the documented requests', async () => {
   );
   assert.match(createRequests[0].request.body.raw, /"receiveAddress"/);
   assert.match(createRequests[0].request.body.raw, /"rateMode"/);
+
+  const preRequestEvents = createRequests[0].event.filter(
+    ({ listen }) => listen === 'prerequest',
+  );
+  const guardScript = preRequestEvents[0]?.script.exec.join('\n') || '';
+  assert.equal(preRequestEvents.length, 1);
+  assert.match(guardScript, /confirmTransactionCreation/);
+  assert.match(guardScript, /CREATE_REAL_TRANSACTION/);
+  assert.match(guardScript, /pm\.execution\.skipRequest\(\)/);
+  assert.match(
+    guardScript,
+    /pm\.environment\.set\(confirmationVariable, 'false'\)/,
+  );
+  assert.ok(
+    guardScript.indexOf("pm.environment.set(confirmationVariable, 'false')") <
+      guardScript.indexOf('pm.execution.skipRequest()'),
+  );
+  assert.deepEqual(runPostmanGuard(guardScript, 'false'), {
+    confirmation: 'false',
+    skipped: true,
+  });
+  assert.deepEqual(runPostmanGuard(guardScript, 'CREATE_REAL_TRANSACTION'), {
+    confirmation: 'false',
+    skipped: false,
+  });
+
+  const npmCommands = Object.values(packageJson.scripts).join('\n');
+  assert.doesNotMatch(
+    npmCommands,
+    /newman|postman.*run|example:.*create|create.*transaction/i,
+  );
 });
