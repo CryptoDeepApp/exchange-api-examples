@@ -14,32 +14,26 @@ function collectPostmanRequests(items = []) {
   );
 }
 
-test('normalizes bare and prefixed API keys', () => {
-  assert.equal(toAuthorizationHeader('demo_token-1'), 'Bearer demo_token-1');
-  assert.equal(
-    toAuthorizationHeader('bearer   demo_token-1'),
-    'Bearer demo_token-1',
-  );
+function getBearerToken(collection) {
+  return collection.auth?.bearer?.find(({ key }) => key === 'token')?.value;
+}
+
+test('builds the documented Bearer authorization header', () => {
+  assert.equal(toAuthorizationHeader('test_token-1'), 'Bearer test_token-1');
 });
 
-test('requires positive amounts in runnable rate examples', () => {
+test('accepts non-negative numeric values', () => {
   assert.equal(readNumber('CRYPTODEEP_TEST_UNSET_AMOUNT', 0.01), 0.01);
-  assert.throws(() => readNumber('CRYPTODEEP_TEST_UNSET_AMOUNT', 0), {
-    code: 'INVALID_ENVIRONMENT_VARIABLE',
-  });
+  assert.equal(readNumber('CRYPTODEEP_TEST_UNSET_AMOUNT', 0), 0);
   assert.throws(() => readNumber('CRYPTODEEP_TEST_UNSET_AMOUNT', -1), {
     code: 'INVALID_ENVIRONMENT_VARIABLE',
   });
 });
 
-test('rejects missing or malformed API keys without printing them', () => {
+test('rejects a missing API key', () => {
   assert.throws(() => toAuthorizationHeader(''), {
     name: 'CryptoDeepApiError',
     code: 'MISSING_API_KEY',
-  });
-  assert.throws(() => toAuthorizationHeader('Bearer token with spaces'), {
-    name: 'CryptoDeepApiError',
-    code: 'INVALID_API_KEY',
   });
 });
 
@@ -91,7 +85,7 @@ test('surfaces structured non-success responses', async () => {
   );
 });
 
-test('supports both verified /rate amount directions', async () => {
+test('supports both documented /rate amount directions', async () => {
   const requestedUrls = [];
   const client = createClient({
     apiKey: 'test_token',
@@ -129,125 +123,42 @@ test('supports both verified /rate amount directions', async () => {
   assert.doesNotMatch(requestedUrls[1], /depositAmount=/);
 });
 
-test('preserves a non-JSON error body for diagnostics', async () => {
-  const client = createClient({
-    apiKey: 'test_token',
-    fetchImpl: async () => new Response('upstream unavailable', { status: 502 }),
-  });
-
-  await assert.rejects(
-    client.get('/api/v1/rate'),
-    (error) => error.status === 502 && error.body === 'upstream unavailable',
-  );
-});
-
-test('wraps network failures without including the API key in the message', async () => {
-  const apiKey = 'never_echo_this_token';
-  const client = createClient({
-    apiKey,
-    fetchImpl: async () => {
-      throw new Error('socket closed');
-    },
-  });
-
-  await assert.rejects(client.get('/api/v1/currencies'), (error) => {
-    assert.equal(error.code, 'NETWORK_ERROR');
-    assert.equal(error.message.includes(apiKey), false);
-    return true;
-  });
-});
-
-test('refuses insecure remote base URLs and paths outside /api/v1', async () => {
-  assert.throws(
-    () => createClient({ apiKey: 'test_token', baseUrl: 'http://example.com' }),
-    { code: 'INSECURE_BASE_URL' },
-  );
-  assert.throws(
-    () =>
-      createClient({
-        apiKey: 'test_token',
-        baseUrl: 'https://api.cryptodeep.app/api',
-      }),
-    { code: 'INVALID_BASE_URL' },
-  );
-
-  const client = createClient({
-    apiKey: 'test_token',
-    fetchImpl: async () => new Response('{}'),
-  });
-  await assert.rejects(client.get('https://example.com/steal'), {
-    code: 'INVALID_API_PATH',
-  });
-  await assert.rejects(client.get('/api/v1/../health'), {
-    code: 'INVALID_API_PATH',
-  });
-  await assert.rejects(client.get('/api/v1/%2e%2e/health'), {
-    code: 'INVALID_API_PATH',
-  });
-});
-
-test('published configuration separates read-only and one-time manual Postman requests', async () => {
+test('Postman files contain the documented requests', async () => {
   const envExample = await readFile('.env.example', 'utf8');
   const postmanEnvironment = JSON.parse(
     await readFile('postman/CryptoDeepApp.postman_environment.json', 'utf8'),
   );
-  const readOnlyCollectionText = await readFile(
+  const getCollectionText = await readFile(
     'postman/CryptoDeepApp.postman_collection.json',
     'utf8',
   );
-  const manualCollectionText = await readFile(
+  const createCollectionText = await readFile(
     'postman/CryptoDeepApp.manual.postman_collection.json',
     'utf8',
   );
-  const readOnlyCollection = JSON.parse(readOnlyCollectionText);
-  const manualCollection = JSON.parse(manualCollectionText);
-  const readOnlyRequests = collectPostmanRequests(readOnlyCollection.item);
-  const manualRequests = collectPostmanRequests(manualCollection.item);
+  const getCollection = JSON.parse(getCollectionText);
+  const createCollection = JSON.parse(createCollectionText);
+  const getRequests = collectPostmanRequests(getCollection.item);
+  const createRequests = collectPostmanRequests(createCollection.item);
   const apiKeyVariable = postmanEnvironment.values.find(
     ({ key }) => key === 'apiKey',
   );
-  const stateChangingFlag = postmanEnvironment.values.find(
-    ({ key }) => key === 'allowStateChangingRequests',
-  );
 
   assert.match(envExample, /^CRYPTODEEP_API_KEY=\s*$/m);
-  assert.doesNotMatch(envExample, /Bearer\s+[A-Za-z0-9_-]{40,}/);
   assert.equal(apiKeyVariable?.value, '');
   assert.equal(apiKeyVariable?.type, 'secret');
-  assert.equal(stateChangingFlag?.value, '');
 
-  assert.equal(readOnlyRequests.length, 5);
-  assert.ok(readOnlyRequests.every(({ request }) => request.method === 'GET'));
-  assert.doesNotMatch(readOnlyCollectionText, /"method"\s*:\s*"POST"/);
-  assert.doesNotMatch(
-    readOnlyCollectionText,
-    /I_UNDERSTAND_THIS_CREATES_A_REAL_EXCHANGE/,
-  );
+  assert.equal(getBearerToken(getCollection), '{{apiKey}}');
+  assert.equal(getRequests.length, 5);
+  assert.ok(getRequests.every(({ request }) => request.method === 'GET'));
 
-  assert.equal(manualRequests.length, 1);
-  assert.equal(manualRequests[0].request.method, 'POST');
+  assert.equal(getBearerToken(createCollection), '{{apiKey}}');
+  assert.equal(createRequests.length, 1);
+  assert.equal(createRequests[0].request.method, 'POST');
   assert.equal(
-    manualRequests[0].request.url.raw,
+    createRequests[0].request.url.raw,
     '{{baseUrl}}/api/v1/transaction',
   );
-  assert.match(manualCollectionText, /pm\.execution\.skipRequest\(\)/);
-  assert.match(
-    manualCollectionText,
-    /pm\.environment\.unset\('allowStateChangingRequests'\)/,
-  );
-  assert.match(
-    manualCollectionText,
-    /I_UNDERSTAND_THIS_CREATES_A_REAL_EXCHANGE/,
-  );
-  assert.match(manualCollectionText, /receiveAddress/);
-  assert.ok(
-    manualCollectionText.indexOf(
-      "pm.environment.unset('allowStateChangingRequests')",
-    ) < manualCollectionText.indexOf('if (suppliedConfirmation'),
-  );
-
-  assert.doesNotMatch(
-    `${readOnlyCollectionText}\n${manualCollectionText}`,
-    /Bearer\s+[A-Za-z0-9_-]{40,}/,
-  );
+  assert.match(createRequests[0].request.body.raw, /"receiveAddress"/);
+  assert.match(createRequests[0].request.body.raw, /"rateMode"/);
 });

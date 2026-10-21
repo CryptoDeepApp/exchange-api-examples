@@ -1,459 +1,161 @@
 {
   "info": {
-    "_postman_id": "6f11139d-5e4d-4ff2-9ffd-84d708c043c8",
+    "_postman_id": "60f2a52f-b07c-4fb1-929d-f8cc98bd63f3",
     "name": "CryptoDeepApp Exchange API",
-    "description": "Official read-only integration examples for the CryptoDeepApp Exchange API. Every request uses an explicit Authorization header because issued API-key values may already include the Bearer prefix. This collection contains only GET requests and never creates an exchange transaction.",
+    "description": "Examples for the documented CryptoDeepApp Exchange API GET endpoints.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
-    "type": "noauth"
-  },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "const apiKey = pm.environment.get('apiKey');",
-          "const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';",
-          "",
-          "if (!/^Bearer\\s+[A-Za-z0-9_-]+$/i.test(normalizedApiKey)) {",
-          "  console.warn('Request skipped: set apiKey to the complete issued Authorization value, including the Bearer prefix.');",
-          "  pm.execution.skipRequest();",
-          "}"
-        ]
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
       }
-    }
-  ],
+    ]
+  },
   "item": [
     {
-      "name": "Read-only",
-      "description": "Authenticated requests that do not create or modify exchange transactions.",
-      "item": [
+      "name": "Get currencies",
+      "event": [
         {
-          "name": "List supported currencies",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains pagination and a coins array', function () {",
-                  "  const body = pm.response.json();",
-                  "  pm.expect(body).to.be.an('object');",
-                  "  pm.expect(body.pagination).to.be.an('object');",
-                  "  pm.expect(body.pagination).to.have.property('totalCount');",
-                  "  pm.expect(body.pagination).to.have.property('pageCount');",
-                  "  pm.expect(body.pagination).to.have.property('page');",
-                  "  pm.expect(body.pagination).to.have.property('limit');",
-                  "  pm.expect(body.coins).to.be.an('array');",
-                  "});",
-                  "",
-                  "pm.test('Returned currency entries use the public schema', function () {",
-                  "  const body = pm.response.json();",
-                  "  body.coins.forEach(function (coin) {",
-                  "    pm.expect(coin).to.have.property('image');",
-                  "    pm.expect(coin).to.have.property('name');",
-                  "    pm.expect(coin).to.have.property('fullName');",
-                  "    pm.expect(coin.networks).to.be.an('array');",
-                  "    coin.networks.forEach(function (network) {",
-                  "      pm.expect(network).to.have.property('name');",
-                  "      pm.expect(network).to.have.property('fullName');",
-                  "      pm.expect(network).to.have.property('memo');",
-                  "    });",
-                  "  });",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "{{apiKey}}",
-                "type": "text",
-                "description": "Complete issued value, including the Bearer prefix."
-              },
-              {
-                "key": "Accept",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/currencies?page={{page}}&limit={{limit}}&search={{currencySearch}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "currencies"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "{{page}}",
-                  "description": "Page number, minimum 1."
-                },
-                {
-                  "key": "limit",
-                  "value": "{{limit}}",
-                  "description": "Page size from 1 to 100."
-                },
-                {
-                  "key": "search",
-                  "value": "{{currencySearch}}",
-                  "description": "Optional coin symbol or full-name search."
-                }
-              ]
-            },
-            "description": "Returns active currencies and their active networks. This endpoint is authenticated even though it is read-only."
-          },
-          "response": []
-        },
-        {
-          "name": "Get exchange quote by deposit amount",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains the verified quote fields', function () {",
-                  "  const body = pm.response.json();",
-                  "  pm.expect(body).to.have.property('depositCoin');",
-                  "  pm.expect(body).to.have.property('receiveCoin');",
-                  "  pm.expect(body.depositAmount).to.be.a('number');",
-                  "  pm.expect(body.receiveAmount).to.be.a('number');",
-                  "  pm.expect(body.rate).to.be.a('number');",
-                  "  if (Object.prototype.hasOwnProperty.call(body, 'withdrawMax')) {",
-                  "    pm.expect(body.withdrawMax).to.be.a('number');",
-                  "  }",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "{{apiKey}}",
-                "type": "text",
-                "description": "Complete issued value, including the Bearer prefix."
-              },
-              {
-                "key": "Accept",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/rate?depositCoin={{depositCoin}}&receiveCoin={{receiveCoin}}&depositAmount={{depositAmount}}&rateMode={{rateMode}}&depositNetwork={{depositNetwork}}&receiveNetwork={{receiveNetwork}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "rate"
-              ],
-              "query": [
-                {
-                  "key": "depositCoin",
-                  "value": "{{depositCoin}}"
-                },
-                {
-                  "key": "receiveCoin",
-                  "value": "{{receiveCoin}}"
-                },
-                {
-                  "key": "depositAmount",
-                  "value": "{{depositAmount}}",
-                  "description": "Use exactly one amount direction."
-                },
-                {
-                  "key": "rateMode",
-                  "value": "{{rateMode}}",
-                  "description": "fixed or float"
-                },
-                {
-                  "key": "depositNetwork",
-                  "value": "{{depositNetwork}}"
-                },
-                {
-                  "key": "receiveNetwork",
-                  "value": "{{receiveNetwork}}"
-                }
-              ]
-            },
-            "description": "Gets an exchange quote when the deposit amount is known."
-          },
-          "response": []
-        },
-        {
-          "name": "Get exchange estimate by receive amount",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains the verified quote fields', function () {",
-                  "  const body = pm.response.json();",
-                  "  pm.expect(body).to.have.property('depositCoin');",
-                  "  pm.expect(body).to.have.property('receiveCoin');",
-                  "  pm.expect(body.depositAmount).to.be.a('number');",
-                  "  pm.expect(body.receiveAmount).to.be.a('number');",
-                  "  pm.expect(body.rate).to.be.a('number');",
-                  "  if (Object.prototype.hasOwnProperty.call(body, 'withdrawMax')) {",
-                  "    pm.expect(body.withdrawMax).to.be.a('number');",
-                  "  }",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "{{apiKey}}",
-                "type": "text",
-                "description": "Complete issued value, including the Bearer prefix."
-              },
-              {
-                "key": "Accept",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/rate?depositCoin={{depositCoin}}&receiveCoin={{receiveCoin}}&receiveAmount={{receiveAmount}}&rateMode={{rateMode}}&depositNetwork={{depositNetwork}}&receiveNetwork={{receiveNetwork}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "rate"
-              ],
-              "query": [
-                {
-                  "key": "depositCoin",
-                  "value": "{{depositCoin}}"
-                },
-                {
-                  "key": "receiveCoin",
-                  "value": "{{receiveCoin}}"
-                },
-                {
-                  "key": "receiveAmount",
-                  "value": "{{receiveAmount}}",
-                  "description": "Use exactly one amount direction."
-                },
-                {
-                  "key": "rateMode",
-                  "value": "{{rateMode}}",
-                  "description": "fixed or float"
-                },
-                {
-                  "key": "depositNetwork",
-                  "value": "{{depositNetwork}}"
-                },
-                {
-                  "key": "receiveNetwork",
-                  "value": "{{receiveNetwork}}"
-                }
-              ]
-            },
-            "description": "Uses the same verified /rate endpoint with receiveAmount instead of inventing a separate estimate route."
-          },
-          "response": []
-        },
-        {
-          "name": "Get transaction status",
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const transactionId = pm.environment.get('transactionId');",
-                  "",
-                  "if (!transactionId || !String(transactionId).trim()) {",
-                  "  console.warn('Request skipped: set transactionId to a transaction owned by the authenticated partner.');",
-                  "  pm.execution.skipRequest();",
-                  "}"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const allowedStatuses = [",
-                  "  'created',",
-                  "  'confirmation',",
-                  "  'exchanging',",
-                  "  'sending',",
-                  "  'success',",
-                  "  'overdue',",
-                  "  'error',",
-                  "  'pause',",
-                  "  'frozen',",
-                  "  'refunded'",
-                  "];",
-                  "",
-                  "pm.test('Status code is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains a transaction ID and valid status', function () {",
-                  "  const body = pm.response.json();",
-                  "  pm.expect(body.uniqueId).to.be.a('string').and.not.empty;",
-                  "  pm.expect(allowedStatuses).to.include(body.status);",
-                  "  pm.expect(body).to.have.property('rateMode');",
-                  "  pm.expect(body).to.have.property('createdAt');",
-                  "  pm.expect(body).to.have.property('profit');",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "{{apiKey}}",
-                "type": "text",
-                "description": "Complete issued value, including the Bearer prefix."
-              },
-              {
-                "key": "Accept",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/transaction?id={{transactionId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transaction"
-              ],
-              "query": [
-                {
-                  "key": "id",
-                  "value": "{{transactionId}}",
-                  "description": "Public uniqueId of a transaction owned by the authenticated partner."
-                }
-              ]
-            },
-            "description": "Returns the complete transaction record, including its current status. The request is skipped while transactionId is blank."
-          },
-          "response": []
-        },
-        {
-          "name": "List transactions",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('Status code is 200', function () {",
-                  "  pm.response.to.have.status(200);",
-                  "});",
-                  "",
-                  "pm.test('Response contains pagination and a transactions array', function () {",
-                  "  const body = pm.response.json();",
-                  "  pm.expect(body.pagination).to.be.an('object');",
-                  "  pm.expect(body.pagination).to.have.property('totalCount');",
-                  "  pm.expect(body.pagination).to.have.property('pageCount');",
-                  "  pm.expect(body.pagination).to.have.property('page');",
-                  "  pm.expect(body.pagination).to.have.property('limit');",
-                  "  pm.expect(body.transactions).to.be.an('array');",
-                  "  body.transactions.forEach(function (transaction) {",
-                  "    pm.expect(transaction).to.have.property('uniqueId');",
-                  "    pm.expect(transaction).to.have.property('status');",
-                  "    pm.expect(transaction).to.have.property('profit');",
-                  "  });",
-                  "});"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "{{apiKey}}",
-                "type": "text",
-                "description": "Complete issued value, including the Bearer prefix."
-              },
-              {
-                "key": "Accept",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/transactions?page={{page}}&limit={{limit}}&search={{transactionSearch}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "transactions"
-              ],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "{{page}}",
-                  "description": "Page number, minimum 1."
-                },
-                {
-                  "key": "limit",
-                  "value": "{{limit}}",
-                  "description": "Page size from 1 to 100."
-                },
-                {
-                  "key": "search",
-                  "value": "{{transactionSearch}}",
-                  "description": "Optional case-insensitive partial uniqueId search."
-                }
-              ]
-            },
-            "description": "Returns the authenticated partner's transactions, newest first. The response can contain wallet addresses and transaction hashes; do not use a shared key associated with production customer data."
-          },
-          "response": []
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains coins', function () {",
+              "  pm.expect(pm.response.json().coins).to.be.an('array');",
+              "});"
+            ]
+          }
         }
-      ]
+      ],
+      "request": {
+        "method": "GET",
+        "description": "Get available coins and networks.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/currencies?page={{page}}&limit={{limit}}&search={{currencySearch}}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get rate by deposit amount",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains rate fields', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('depositAmount');",
+              "  pm.expect(body).to.have.property('receiveAmount');",
+              "  pm.expect(body).to.have.property('rate');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "description": "Calculate a rate from depositAmount.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/rate?depositCoin={{depositCoin}}&receiveCoin={{receiveCoin}}&depositAmount={{depositAmount}}&rateMode={{rateMode}}&depositNetwork={{depositNetwork}}&receiveNetwork={{receiveNetwork}}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get rate by receive amount",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains rate fields', function () {",
+              "  const body = pm.response.json();",
+              "  pm.expect(body).to.have.property('depositAmount');",
+              "  pm.expect(body).to.have.property('receiveAmount');",
+              "  pm.expect(body).to.have.property('rate');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "description": "Calculate a rate from receiveAmount.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/rate?depositCoin={{depositCoin}}&receiveCoin={{receiveCoin}}&receiveAmount={{receiveAmount}}&rateMode={{rateMode}}&depositNetwork={{depositNetwork}}&receiveNetwork={{receiveNetwork}}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get one transaction",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains uniqueId', function () {",
+              "  pm.expect(pm.response.json()).to.have.property('uniqueId');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "description": "Get a transaction by uniqueId.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/transaction?id={{transactionId}}"
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Get transactions",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status code is 200', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains transactions', function () {",
+              "  pm.expect(pm.response.json().transactions).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "description": "Get transactions with pagination and search.",
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/transactions?page={{page}}&limit={{limit}}&search={{transactionSearch}}"
+        }
+      },
+      "response": []
     }
   ]
 }

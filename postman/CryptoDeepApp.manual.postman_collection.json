@@ -1,46 +1,24 @@
 {
   "info": {
-    "_postman_id": "07256f8d-d66a-4119-a6a2-e717b3b72e4f",
-    "name": "CryptoDeepApp Exchange API — Manual Transaction Creation",
-    "description": "DANGER: this separate collection contains one state-changing request that can create a real provider exchange. Import and run it only for an intentional manual operation. Never include this collection in collection runs, Newman runs, CI, scheduled jobs, monitors, or other automation.",
+    "_postman_id": "fe849f10-638b-43d0-b6a1-8cfef1aa7708",
+    "name": "CryptoDeepApp Exchange API - Create Transaction",
+    "description": "Example for POST /api/v1/transaction.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
-    "type": "noauth"
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
   },
   "item": [
     {
-      "name": "Create exchange transaction — manual only",
+      "name": "Create transaction",
       "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const requiredConfirmation = 'I_UNDERSTAND_THIS_CREATES_A_REAL_EXCHANGE';",
-              "const suppliedConfirmation = pm.environment.get('allowStateChangingRequests');",
-              "pm.environment.unset('allowStateChangingRequests');",
-              "",
-              "if (suppliedConfirmation !== requiredConfirmation) {",
-              "  console.warn('State-changing request skipped. Set allowStateChangingRequests to the exact one-time opt-in phrase only when you intend to create a real exchange.');",
-              "  pm.execution.skipRequest();",
-              "}",
-              "",
-              "const receiveAddress = pm.environment.get('receiveAddress');",
-              "if (!receiveAddress || !String(receiveAddress).trim()) {",
-              "  console.warn('State-changing request skipped: receiveAddress is blank.');",
-              "  pm.execution.skipRequest();",
-              "}",
-              "",
-              "const apiKey = pm.environment.get('apiKey');",
-              "const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';",
-              "if (!/^Bearer\\s+[A-Za-z0-9_-]+$/i.test(normalizedApiKey)) {",
-              "  console.warn('State-changing request skipped: apiKey must be the complete issued Authorization value, including the Bearer prefix.');",
-              "  pm.execution.skipRequest();",
-              "}"
-            ]
-          }
-        },
         {
           "listen": "test",
           "script": {
@@ -49,16 +27,8 @@
               "pm.test('Status code is 201', function () {",
               "  pm.response.to.have.status(201);",
               "});",
-              "",
-              "pm.test('Created transaction uses the verified response schema', function () {",
-              "  const body = pm.response.json();",
-              "  pm.expect(body.uniqueId).to.be.a('string').and.not.empty;",
-              "  pm.expect(body.status).to.equal('created');",
-              "  pm.expect(body).to.have.property('depositAddress');",
-              "  pm.expect(body).to.have.property('depositAmount');",
-              "  pm.expect(body).to.have.property('receiveAmount');",
-              "  pm.expect(body).to.have.property('createdAt');",
-              "  pm.expect(body).not.to.have.property('profit');",
+              "pm.test('Response contains uniqueId', function () {",
+              "  pm.expect(pm.response.json()).to.have.property('uniqueId');",
               "});"
             ]
           }
@@ -68,20 +38,8 @@
         "method": "POST",
         "header": [
           {
-            "key": "Authorization",
-            "value": "{{apiKey}}",
-            "type": "text",
-            "description": "Complete issued value, including the Bearer prefix."
-          },
-          {
             "key": "Content-Type",
-            "value": "application/json",
-            "type": "text"
-          },
-          {
-            "key": "Accept",
-            "value": "application/json",
-            "type": "text"
+            "value": "application/json"
           }
         ],
         "body": {
@@ -93,18 +51,10 @@
             }
           }
         },
+        "description": "Create a transaction.",
         "url": {
-          "raw": "{{baseUrl}}/api/v1/transaction",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "transaction"
-          ]
-        },
-        "description": "WARNING: this request creates a real provider exchange. It is skipped unless allowStateChangingRequests exactly equals I_UNDERSTAND_THIS_CREATES_A_REAL_EXCHANGE and receiveAddress is non-empty. The guard unsets the opt-in variable before sending, so authorization is one-time. Run this request manually only; never run this collection through the Collection Runner, Newman, CI, monitors, schedules, or other automation."
+          "raw": "{{baseUrl}}/api/v1/transaction"
+        }
       },
       "response": []
     }
